@@ -116,9 +116,7 @@ if __name__ == '__main__':
     print(folders)
     threads = []
     for folder in folders:
-        logging.info('Start')
         th = Thread(target=scan_folder, args=(folder,))
-        logging.info('Start')
         th.start()
         threads.append(th)
     [thread.join() for thread in threads]
