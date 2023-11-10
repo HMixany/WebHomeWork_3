@@ -90,8 +90,8 @@ def scan_folder(folder: Path) -> None:
             Thread(target=moving_file, args=(item, dist)).start()
 
 
-def remove_empty_folders(path):
-    for item in path.iterdir():
+def remove_empty_folders(folder_path):
+    for item in folder_path.iterdir():
         print(f'{item.name}')
         if item.name in ['images', 'video', 'documents', 'audio', 'archives', 'others']:
             continue
@@ -107,6 +107,8 @@ def remove_empty_folders(path):
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO, format='%(threadName)s %(message)s')
+    path = Path('L:/Projects/Мотлох')
     path = path.rename(path.parent / normalize(path.name).rstrip('.'))
     translation(path)
     folders.append(path)
@@ -114,7 +116,9 @@ if __name__ == '__main__':
     print(folders)
     threads = []
     for folder in folders:
+        logging.info('Start')
         th = Thread(target=scan_folder, args=(folder,))
+        logging.info('Start')
         th.start()
         threads.append(th)
     [thread.join() for thread in threads]
