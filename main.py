@@ -7,8 +7,10 @@ import shutil
 from pathlib import Path
 from threading import Thread
 import logging
+import concurrent.futures
+import sys
 
-path = Path('L:/Projects/Мотлох')
+
 groups_files = {
     'images': ['JPEG', 'PNG', 'JPG', 'SVG'],
     'video': ['AVI', 'MP4', 'MOV', 'MKV'],
@@ -55,6 +57,7 @@ def grabs_folder(path: Path) -> None:
 def moving_file(file: Path, dist) -> None:
     target_folder = path / dist
     target_folder.mkdir(exist_ok=True)
+    logging.info(f'Start movimg {file.name}')
     distinction = target_folder / file.name
     shutil.move(file, distinction)
 
@@ -75,6 +78,8 @@ def moving_archive(file, dist):
 
 
 def scan_folder(folder: Path) -> None:
+    logging.info(f'Start thread folder {folder.name}')
+    threads = []
     for item in folder.iterdir():
         dist = 'others'
         if item.is_file():
@@ -87,37 +92,40 @@ def scan_folder(folder: Path) -> None:
                     if extension in value:
                         dist = key
                         break
-            Thread(target=moving_file, args=(item, dist)).start()
+            thread = Thread(target=moving_file, args=(item, dist))
+            thread.start()
+            threads.append(thread)
+    [th.join() for th in threads]
 
 
 def remove_empty_folders(folder_path):
     for item in folder_path.iterdir():
-        print(f'{item.name}')
-        if item.name in ['images', 'video', 'documents', 'audio', 'archives', 'others']:
-            continue
         if item.is_dir():
-            print('is dir')
+            logging.info(f'Scan for remove {item.name}')
+            if item.name in ['images', 'video', 'documents', 'audio', 'archives', 'others']:
+                continue
             if not any(item.iterdir()):
-                print('not any')
                 item.rmdir()
                 remove_empty_folders(path)
             else:
-                print('else')
                 remove_empty_folders(item)
 
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(threadName)s %(message)s')
-    path = Path('L:/Projects/Мотлох')
+    # path = Path('D:/Projects/Мотлох')
+    path = Path(sys.argv[1])
     path = path.rename(path.parent / normalize(path.name).rstrip('.'))
     translation(path)
     folders.append(path)
     grabs_folder(path)
     print(folders)
-    threads = []
-    for folder in folders:
-        th = Thread(target=scan_folder, args=(folder,))
-        th.start()
-        threads.append(th)
-    [thread.join() for thread in threads]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        executor.map(scan_folder, folders)
+    # threads = []
+    # for folder in folders:
+    #     th = Thread(target=scan_folder, args=(folder,))
+    #     th.start()
+    #     threads.append(th)
+    # [thread.join() for thread in threads]
     remove_empty_folders(path)
